@@ -22,3 +22,7 @@ variable "ssh_key_path" {
 variable "publicIP" {
   description = "Your home PublicIP to configure access to VMs(if needed)"
 }
+
+variable "admin_password" {
+  default = "MondooSPM1!"
+}

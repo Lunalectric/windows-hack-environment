@@ -41,6 +41,8 @@ export TF_VAR_ssh_key=key
 export TF_VAR_ssh_key_path="~/.ssh/key.pem"
 
 export TF_VAR_publicIP="1.1.1.1/32"
+
+export TF_VAR_admin_password="MondooSPM1!"
 ```
 
 ```bash title="set-exports.sh"
