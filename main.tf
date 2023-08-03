@@ -132,7 +132,7 @@ data "aws_ami" "windows-ad" {
 
   filter {
     name   = "name"
-    values = ["Windows_Server-2022-English-Full-Base-2022*"]
+    values = ["Windows_Server-2022-English-Full-Base-2023*"]
   }
 
   filter {
@@ -167,7 +167,7 @@ Add-WindowsCapability -Online -Name OpenSSH.Server
 New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force
 Start-Service sshd
 Set-Service -Name sshd -StartupType 'Automatic'
-$NewPassword = ConvertTo-SecureString "MondooSPM1!" -AsPlainText -Force
+$NewPassword = ConvertTo-SecureString "${var.admin_password}" -AsPlainText -Force
 Set-LocalUser -Name Administrator -Password $NewPassword
 </powershell>
 EOF
@@ -231,7 +231,7 @@ powershell.exe -ExecutionPolicy Bypass -File install-sshd.ps1
 Start-Service sshd
 Set-Service -Name sshd -StartupType 'Automatic'
 New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force
-$NewPassword = ConvertTo-SecureString "MondooSPM1!" -AsPlainText -Force
+$NewPassword = ConvertTo-SecureString "${var.admin_password}" -AsPlainText -Force
 Set-LocalUser -Name Administrator -Password $NewPassword
 netsh advfirewall set allprofiles state off
 </powershell>
@@ -305,7 +305,7 @@ powershell.exe -ExecutionPolicy Bypass -File install-sshd.ps1
 Start-Service sshd
 Set-Service -Name sshd -StartupType 'Automatic'
 New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force
-$NewPassword = ConvertTo-SecureString "MondooSPM1!" -AsPlainText -Force
+$NewPassword = ConvertTo-SecureString "${var.admin_password}" -AsPlainText -Force
 Set-LocalUser -Name Administrator -Password $NewPassword
 </powershell>
 EOF
@@ -329,7 +329,7 @@ data "aws_ami" "kali_linux" {
 
   filter {
     name   = "name"
-    values = ["kali-rolling-amd64-2022*"]
+    values = ["kali-last-snapshot-amd64*"]
   }
 
   filter {
@@ -340,13 +340,6 @@ data "aws_ami" "kali_linux" {
   filter {
     name   = "virtualization-type"
     values = ["hvm"]
-  }
-}
-
-data "template_file" "change_password" {
-  template = file("${path.module}/templates/change-password.tpl")
-  vars = {
-    pass_string = "${random_string.suffix.result}"
   }
 }
 
@@ -388,7 +381,7 @@ module "kali" {
   monitoring             = true
   vpc_security_group_ids = [aws_security_group.kali_linux_access.id]
   subnet_id              = element(module.vpc.public_subnets, 0)
-  user_data              = data.template_file.change_password.rendered
+  user_data              = templatefile("${path.module}/templates/change-password.tftpl", { pass_string = "${var.admin_password}" })
 
   tags = merge(
     local.default_tags, {
@@ -404,7 +397,7 @@ resource "local_file" "inventory" {
     all:
       vars:
         ansible_user: Administrator
-        ansible_password: MondooSPM1!
+        ansible_password: "${var.admin_password}"
         ansible_connection: ssh
         ansible_port: 22
         ansible_shell_type: powershell
@@ -413,7 +406,7 @@ resource "local_file" "inventory" {
         domain_name: mondoo.hacklab
         man_adcs_winrm_domain: '{{ domain_name }}'
         domain_admin: Administrator
-        domain_admin_password: MondooSPM1!
+        domain_admin_password: "${var.admin_password}"
         netbios_name: MONDOO
         domain_mode: WinThreshold
         dns_server:
